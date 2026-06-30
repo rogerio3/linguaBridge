@@ -11,7 +11,7 @@ import type { HistoryItem } from "@/types";
 export default function HomePage() {
   const { models, loading: modelsLoading } = useModels();
   const { items, total, loading: histLoading, load, remove, prepend } = useHistory();
-  const [model,   setModel]   = useState("openai/gpt-4o-mini");
+  const [model,   setModel]   = useState("nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free");
   const [tab,     setTab]     = useState<"translate" | "history">("translate");
 
   function handleResult(item: HistoryItem) {

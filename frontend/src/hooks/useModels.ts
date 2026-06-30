@@ -10,7 +10,7 @@ export function useModels() {
   useEffect(() => {
     api.models()
       .then(r => setModels(r.models))
-      .catch(() => setModels([{ id: "openai/gpt-4o-mini", name: "GPT-4o Mini" }]))
+      .catch(() => setModels([{ id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", name: "GPT-4o Mini" }]))
       .finally(() => setLoading(false));
   }, []);
 
