@@ -9,7 +9,7 @@
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "postinstall": "prisma generate",
-    "test": "tsx --test src/__tests__/openrouter.test.ts"
+    "test": "tsx --test src/__tests__/*.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
