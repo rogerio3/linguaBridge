@@ -55,7 +55,7 @@ describe("getHistory", () => {
         sourceText: "Hello", detectedLanguage: "en",
         detectedLanguageName: "English",
         targetLanguages: ["pt"],
-        model: "openai/gpt-4o-mini",
+        model: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
         durationMs: 1500,
         createdAt: new Date("2025-01-01T00:00:00Z"),
         results: [
@@ -67,7 +67,7 @@ describe("getHistory", () => {
         sourceText: "Goodbye", detectedLanguage: "en",
         detectedLanguageName: "English",
         targetLanguages: ["fr", "de"],
-        model: "openai/gpt-4o-mini",
+        model: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
         durationMs: 2000,
         createdAt: new Date("2025-01-02T00:00:00Z"),
         results: [

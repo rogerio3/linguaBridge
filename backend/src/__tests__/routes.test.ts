@@ -66,7 +66,7 @@ describe("routes", () => {
   describe("GET /models", () => {
     it("deve retornar modelos disponíveis", async () => {
       mockFetchAvailableModels.mock.mockImplementation(async () => [
-        { id: "openai/gpt-4o-mini", name: "GPT-4o Mini" },
+        { id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", name: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free" },
         { id: "anthropic/claude-3-haiku", name: "Claude 3 Haiku" },
       ]);
 
@@ -100,7 +100,7 @@ describe("routes", () => {
         translations: [
           { language: "pt", languageName: "Portuguese", translatedText: "Olá" },
         ],
-        model: "openai/gpt-4o-mini",
+        model: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
         durationMs: 1200,
         createdAt: new Date().toISOString(),
       }));
@@ -108,7 +108,7 @@ describe("routes", () => {
       const res = await app.inject({
         method: "POST",
         url: "/translate",
-        body: { text: "Hello", targetLanguages: ["pt"], model: "openai/gpt-4o-mini" },
+        body: { text: "Hello", targetLanguages: ["pt"], model: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free" },
       });
 
       assert.equal(res.statusCode, 200);
@@ -168,7 +168,7 @@ describe("routes", () => {
             detectedLanguage: "en",
             detectedLanguageName: "English",
             targetLanguages: ["pt"],
-            model: "openai/gpt-4o-mini",
+            model: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
             durationMs: 500,
             createdAt: new Date().toISOString(),
             translations: [

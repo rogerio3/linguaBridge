@@ -22,7 +22,7 @@ export function getLanguageName(code: string): string {
   return LANGUAGE_NAMES[code.toLowerCase()] ?? code.toUpperCase();
 }
 
-const DEFAULT_MODEL = "openai/gpt-4o-mini";
+const DEFAULT_MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free";
 
 export async function translateText(req: TranslateRequest): Promise<TranslateResponse> {
   if (!req.text?.trim()) throw new Error("'text' é obrigatório.");
