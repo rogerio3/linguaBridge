@@ -1,15 +1,41 @@
-import { describe, it, mock } from "node:test";
+import { describe, it, before, mock } from "node:test";
 import assert from "node:assert/strict";
+
+// ── Mock db module ─────────────────────────────────────────────
+
+const mockFindMany = mock.fn<(...args: any[]) => any>();
+const mockCount = mock.fn<(...args: any[]) => any>();
+const mockDelete = mock.fn<(...args: any[]) => any>();
+
+const mockPrisma = {
+  translation: {
+    findMany: mockFindMany,
+    count: mockCount,
+    delete: mockDelete,
+  },
+};
+
+before(() => {
+  mock.module("../db.js", {
+    exports: { prisma: mockPrisma },
+  });
+});
+
+function resetMocks(): void {
+  mockFindMany.mock.resetCalls();
+  mockCount.mock.resetCalls();
+  mockDelete.mock.resetCalls();
+}
 
 // ── Tests ────────────────────────────────────────────────────
 
 describe("getHistory", () => {
   it("deve retornar lista vazia quando não há traduções", async () => {
-    const { prisma } = await import("../db.js");
+    resetMocks();
     const { getHistory } = await import("../history.js");
 
-    const mockFindMany = mock.method(prisma.translation, "findMany", async () => []);
-    const mockCount = mock.method(prisma.translation, "count", async () => 0);
+    mockFindMany.mock.mockImplementation(async () => []);
+    mockCount.mock.mockImplementation(async () => 0);
 
     const result = await getHistory(10, 0);
 
@@ -17,13 +43,10 @@ describe("getHistory", () => {
     assert.deepEqual(result.items, []);
     assert.equal(mockFindMany.mock.calls.length, 1);
     assert.equal(mockCount.mock.calls.length, 1);
-
-    mockFindMany.mock.restore();
-    mockCount.mock.restore();
   });
 
   it("deve retornar traduções com resultados aninhados", async () => {
-    const { prisma } = await import("../db.js");
+    resetMocks();
     const { getHistory } = await import("../history.js");
 
     const mockTranslations = [
@@ -54,8 +77,8 @@ describe("getHistory", () => {
       },
     ];
 
-    const mockFindMany = mock.method(prisma.translation, "findMany", async () => mockTranslations);
-    const mockCount = mock.method(prisma.translation, "count", async () => 2);
+    mockFindMany.mock.mockImplementation(async () => mockTranslations);
+    mockCount.mock.mockImplementation(async () => 2);
 
     const result = await getHistory(50, 0);
 
@@ -70,54 +93,43 @@ describe("getHistory", () => {
     assert.equal(callArgs.take, 50);
     assert.equal(callArgs.skip, 0);
     assert.deepEqual(callArgs.orderBy, { createdAt: "desc" });
-
-    mockFindMany.mock.restore();
-    mockCount.mock.restore();
   });
 
   it("deve respeitar paginação", async () => {
-    const { prisma } = await import("../db.js");
+    resetMocks();
     const { getHistory } = await import("../history.js");
 
-    const mockFindMany = mock.method(prisma.translation, "findMany", async () => []);
-    const mockCount = mock.method(prisma.translation, "count", async () => 0);
+    mockFindMany.mock.mockImplementation(async () => []);
+    mockCount.mock.mockImplementation(async () => 0);
 
     await getHistory(20, 40);
 
     const callArgs = mockFindMany.mock.calls[0].arguments[0];
     assert.equal(callArgs.take, 20);
     assert.equal(callArgs.skip, 40);
-
-    mockFindMany.mock.restore();
-    mockCount.mock.restore();
   });
 });
 
 describe("deleteTranslation", () => {
   it("deve retornar true quando a exclusão for bem-sucedida", async () => {
-    const { prisma } = await import("../db.js");
+    resetMocks();
     const { deleteTranslation } = await import("../history.js");
 
-    const mockDelete = mock.method(prisma.translation, "delete", async () => ({ id: "abc" }));
+    mockDelete.mock.mockImplementation(async () => ({ id: "abc" }));
 
     const result = await deleteTranslation("abc");
     assert.equal(result, true);
     assert.equal(mockDelete.mock.calls.length, 1);
     assert.deepEqual(mockDelete.mock.calls[0].arguments[0], { where: { id: "abc" } });
-
-    mockDelete.mock.restore();
   });
 
   it("deve retornar false quando o registro não existe", async () => {
-    const { prisma } = await import("../db.js");
+    resetMocks();
     const { deleteTranslation } = await import("../history.js");
 
-    const mockDelete = mock.method(prisma.translation, "delete", async () => { throw new Error("Not found"); });
+    mockDelete.mock.mockImplementation(async () => { throw new Error("Not found"); });
 
     const result = await deleteTranslation("non-existent");
     assert.equal(result, false);
-
-    mockDelete.mock.restore();
   });
 });
-

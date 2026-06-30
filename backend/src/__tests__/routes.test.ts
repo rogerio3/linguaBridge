@@ -23,16 +23,16 @@ describe("routes", () => {
 
   before(async () => {
     mock.module("../translate.js", {
-      namedExports: { translateText: mockTranslateText },
+      exports: { translateText: mockTranslateText },
     });
     mock.module("../history.js", {
-      namedExports: {
+      exports: {
         getHistory: mockGetHistory,
         deleteTranslation: mockDeleteTranslation,
       },
     });
     mock.module("../openrouter.js", {
-      namedExports: { fetchAvailableModels: mockFetchAvailableModels },
+      exports: { fetchAvailableModels: mockFetchAvailableModels },
     });
 
     const mod = await import("../routes.js");

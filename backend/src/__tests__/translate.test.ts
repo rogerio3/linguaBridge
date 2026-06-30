@@ -1,4 +1,4 @@
-import { describe, it, mock } from "node:test";
+import { describe, it, before, mock } from "node:test";
 import assert from "node:assert/strict";
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -6,23 +6,65 @@ import assert from "node:assert/strict";
 function buildMockLLMResponse(content: string) {
   return {
     id: "mock-id",
-    model: "openai/gpt-4o-mini",
+    model: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
     choices: [{ message: { role: "assistant" as const, content }, finish_reason: "stop" as const }],
   };
 }
 
-function buildValidTranslationResult() {
-  return {
-    id: `trans-${Math.random().toString(36).slice(2)}`,
-    sessionId: "session-123",
-    sourceText: "Olá",
-    detectedLanguage: "pt",
-    detectedLanguageName: "Portuguese",
-    translations: [{ language: "en", languageName: "English", translatedText: "Hello" }],
-    model: "openai/gpt-4o-mini",
-    durationMs: 100,
-    createdAt: new Date().toISOString(),
+// ── Mock modules ─────────────────────────────────────────────
+
+type MockOpenRouter = {
+  callOpenRouter: (...args: any[]) => any;
+};
+
+type MockPrisma = {
+  $transaction: (...args: any[]) => any;
+  translationSession: {
+    findUnique: (...args: any[]) => any;
+    create: (...args: any[]) => any;
   };
+  translation: {
+    create: (...args: any[]) => any;
+  };
+  translationResult: {
+    create: (...args: any[]) => any;
+  };
+};
+
+const mockOpenRouter: MockOpenRouter = {
+  callOpenRouter: mock.fn<(...args: any[]) => any>(),
+};
+
+const mockPrisma: MockPrisma = {
+  $transaction: mock.fn<(...args: any[]) => any>(),
+  translationSession: {
+    findUnique: mock.fn<(...args: any[]) => any>(),
+    create: mock.fn<(...args: any[]) => any>(),
+  },
+  translation: {
+    create: mock.fn<(...args: any[]) => any>(),
+  },
+  translationResult: {
+    create: mock.fn<(...args: any[]) => any>(),
+  },
+};
+
+before(() => {
+  mock.module("../openrouter.js", {
+    exports: { callOpenRouter: mockOpenRouter.callOpenRouter },
+  });
+  mock.module("../db.js", {
+    exports: { prisma: mockPrisma },
+  });
+});
+
+function resetMocks(): void {
+  mockOpenRouter.callOpenRouter.mock.resetCalls();
+  mockPrisma.$transaction.mock.resetCalls();
+  mockPrisma.translationSession.findUnique.mock.resetCalls();
+  mockPrisma.translationSession.create.mock.resetCalls();
+  mockPrisma.translation.create.mock.resetCalls();
+  mockPrisma.translationResult.create.mock.resetCalls();
 }
 
 // ── translateText ────────────────────────────────────────────
@@ -53,97 +95,86 @@ describe("translateText", () => {
   });
 
   it("deve chamar callOpenRouter e persistir no banco", async () => {
-    const modulePath = "../openrouter.js";
-    // Só executa este teste se conseguir mockar o módulo
-    // Caso contrário, usa a implementação real (requer API key)
+    resetMocks();
     const { translateText } = await import("../translate.js");
 
-    // Tenta mockar via mock.method no namespace
-    let mockRestore: (() => void) | null = null;
-    try {
-      const openrouterModule = await import("../openrouter.js");
+    mockOpenRouter.callOpenRouter.mock.mockImplementation(
+      async () => buildMockLLMResponse(JSON.stringify({
+        detectedLanguage: "pt",
+        detectedLanguageName: "Portuguese",
+        translations: [
+          { language: "en", languageName: "English", translatedText: "Hello" },
+        ],
+      })),
+    );
 
-      const mockFn = mock.method(openrouterModule, "callOpenRouter",
-        async () => buildMockLLMResponse(JSON.stringify({
-          detectedLanguage: "pt",
-          detectedLanguageName: "Portuguese",
-          translations: [
-            { language: "en", languageName: "English", translatedText: "Hello" },
-          ],
-        })),
-      );
-
-      const { prisma } = await import("../db.js");
-
-      const mockTransaction = mock.method(prisma, "$transaction",
-        async (cb: (tx: any) => Promise<any>) => {
-          return cb({
-            translationSession: {
-              findUnique: async () => null,
-              create: async () => ({ id: "session-123" }),
-            },
-            translation: {
-              create: async () => ({
-                id: "translation-456",
-                sessionId: "session-123",
-                createdAt: new Date(),
-              }),
-            },
-            translationResult: {
-              create: async () => ({}),
-            },
-          });
-        },
-      );
-
-      const result = await translateText({
-        text: "Olá",
-        targetLanguages: ["en"],
-      });
-
-      assert.equal(result.sourceText, "Olá");
-      assert.equal(result.detectedLanguage, "pt");
-      assert.equal(result.sessionId, "session-123");
-      assert.equal(result.translations.length, 1);
-      assert.equal(result.translations[0].translatedText, "Hello");
-      assert.equal(mockFn.mock.calls.length, 1);
-      assert.equal(mockTransaction.mock.calls.length, 1);
-
-      mockFn.mock.restore();
-      mockTransaction.mock.restore();
-    } catch {
-      // Se o mock falhar, tenta com API real (ignora se não tiver key)
-      try {
-        const result = await translateText({
-          text: "Hello",
-          targetLanguages: ["pt"],
+    mockPrisma.$transaction.mock.mockImplementation(
+      async (cb: (tx: any) => Promise<any>) => {
+        return cb({
+          translationSession: {
+            findUnique: async () => null,
+            create: async () => ({ id: "session-123" }),
+          },
+          translation: {
+            create: async () => ({
+              id: "translation-456",
+              sessionId: "session-123",
+              createdAt: new Date(),
+            }),
+          },
+          translationResult: {
+            create: async () => ({}),
+          },
         });
-        assert.equal(result.sourceText, "Hello");
-        assert.ok(result.id);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        if (msg.includes("OpenRouter 401") || msg.includes("OPENROUTER_API_KEY")) {
-          console.log("  ⏭  API key não disponível, pulando teste de integração");
-        } else {
-          throw e;
-        }
-      }
-    }
+      },
+    );
+
+    const result = await translateText({
+      text: "Olá",
+      targetLanguages: ["en"],
+    });
+
+    assert.equal(result.sourceText, "Olá");
+    assert.equal(result.detectedLanguage, "pt");
+    assert.equal(result.sessionId, "session-123");
+    assert.equal(result.translations.length, 1);
+    assert.equal(result.translations[0].translatedText, "Hello");
+    assert.equal(mockOpenRouter.callOpenRouter.mock.calls.length, 1);
+    assert.equal(mockPrisma.$transaction.mock.calls.length, 1);
   });
 
   it("deve rejeitar JSON inválido vindo do LLM", async () => {
+    resetMocks();
     const { translateText } = await import("../translate.js");
 
-    const openrouterModule = await import("../openrouter.js");
-    const mockFn = mock.method(openrouterModule, "callOpenRouter",
+    mockOpenRouter.callOpenRouter.mock.mockImplementation(
       async () => buildMockLLMResponse("I'm sorry, I cannot process this."),
+    );
+
+    mockPrisma.$transaction.mock.mockImplementation(
+      async (cb: (tx: any) => Promise<any>) => {
+        return cb({
+          translationSession: {
+            findUnique: async () => null,
+            create: async () => ({ id: "session-123" }),
+          },
+          translation: {
+            create: async () => ({
+              id: "translation-456",
+              sessionId: "session-123",
+              createdAt: new Date(),
+            }),
+          },
+          translationResult: {
+            create: async () => ({}),
+          },
+        });
+      },
     );
 
     await assert.rejects(
       () => translateText({ text: "Olá", targetLanguages: ["en"] }),
       (err: Error) => err.message.startsWith("LLM returned non-JSON"),
     );
-
-    mockFn.mock.restore();
   });
 });
