@@ -1,0 +1,25 @@
+{
+  "name": "linguabridge-api",
+  "version": "2.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "npx prisma migrate deploy && node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "postinstall": "prisma generate",
+    "test": "tsx --test src/__tests__/openrouter.test.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "fastify": "^5.9.0",
+    "prisma": "^5.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.22.4",
+    "typescript": "^5.4.5"
+  }
+}

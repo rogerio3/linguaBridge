@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model TranslationSession {
+  id           String        @id @default(uuid()) @db.Uuid
+  createdAt    DateTime      @default(now()) @map("created_at")
+  translations Translation[]
+
+  @@map("translation_sessions")
+}
+
+model Translation {
+  id                   String               @id @default(uuid()) @db.Uuid
+  sessionId            String               @map("session_id") @db.Uuid
+  sourceText           String               @map("source_text")
+  detectedLanguage     String               @map("detected_language") @db.VarChar(16)
+  detectedLanguageName String               @map("detected_language_name") @db.VarChar(64)
+  targetLanguages      String[]             @map("target_languages")
+  model                String               @db.VarChar(128)
+  durationMs           Int                  @map("duration_ms")
+  createdAt            DateTime             @default(now()) @map("created_at")
+
+  session TranslationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  results TranslationResult[]
+
+  @@index([sessionId], name: "idx_translations_session")
+  @@index([createdAt], name: "idx_translations_created")
+  @@map("translations")
+}
+
+model TranslationResult {
+  id              String      @id @default(uuid()) @db.Uuid
+  translationId   String      @map("translation_id") @db.Uuid
+  language        String      @db.VarChar(16)
+  languageName    String      @map("language_name") @db.VarChar(64)
+  translatedText  String      @map("translated_text")
+  createdAt       DateTime    @default(now()) @map("created_at")
+
+  translation Translation @relation(fields: [translationId], references: [id], onDelete: Cascade)
+
+  @@index([translationId], name: "idx_results_translation")
+  @@map("translation_results")
+}
