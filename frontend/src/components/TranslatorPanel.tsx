@@ -3,6 +3,7 @@ import { useState, useRef } from "react";
 import { api } from "@/lib/api";
 import { LanguageSelect } from "./LanguageSelect";
 import { GlobeIcon } from "./GlobeIcon";
+import { SpeakerButton } from "./SpeakerButton";
 import type { TranslateResponse, HistoryItem } from "@/types";
 
 interface Props {
@@ -128,19 +129,22 @@ export function TranslatorPanel({ model, onResult }: Props) {
       {result && (
         <div className="flex flex-col gap-3 animate-fade-up">
           {result.translations.map((t, i) => (
-            <div key={t.language} className="bg-panel border border-divider rounded-xl overflow-hidden"
+            <div key={t.language + t.translatedText} className="bg-panel border border-divider rounded-xl overflow-hidden"
                  style={{ animationDelay: `${i * 60}ms` }}>
               <div className="flex items-center justify-between px-4 py-3 bg-void border-b border-divider">
                 <span className="font-display font-semibold text-teal text-sm">
                   {t.languageName} <span className="text-ink-faint font-body font-normal">({t.language.toUpperCase()})</span>
                 </span>
-                <button
-                  onClick={() => copy(t.translatedText, t.language)}
-                  className="text-xs text-ink-muted border border-divider rounded-md px-2.5 py-1
-                             hover:border-teal hover:text-teal transition-colors"
-                >
-                  {copied === t.language ? "Copiado ✓" : "Copiar"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <SpeakerButton text={t.translatedText} lang={t.language} />
+                  <button
+                    onClick={() => copy(t.translatedText, t.language)}
+                    className="text-xs text-ink-muted border border-divider rounded-md px-2.5 py-1
+                               hover:border-teal hover:text-teal transition-colors"
+                  >
+                    {copied === t.language ? "Copiado ✓" : "Copiar"}
+                  </button>
+                </div>
               </div>
               <p className="px-4 py-3 text-sm text-ink leading-relaxed whitespace-pre-wrap">{t.translatedText}</p>
               {i === result.translations.length - 1 && (

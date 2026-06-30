@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { SpeakerButton } from "./SpeakerButton";
 import type { HistoryItem } from "@/types";
 
 interface Props {
@@ -104,7 +105,10 @@ export function HistoryPanel({ items, total, loading, onLoad, onDelete }: Props)
             <div className="border-t border-divider px-3 py-2.5 flex flex-col gap-2 animate-fade-up">
               {item.translations.map(t => (
                 <div key={t.language}>
-                  <span className="text-xs font-semibold text-teal">{t.languageName}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-teal">{t.languageName}</span>
+                    <SpeakerButton text={t.translatedText} lang={t.language} />
+                  </div>
                   <p className="text-xs text-ink mt-0.5 leading-relaxed">{t.translatedText}</p>
                 </div>
               ))}
